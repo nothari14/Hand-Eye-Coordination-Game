@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>IMPULSE</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDM0uq6R1HOkles9dOh9MrJR3cVfYCXXyQ",
+  authDomain: "resist-game.firebaseapp.com",
+  databaseURL: "https://resist-game-default-rtdb.firebaseio.com",
+  projectId: "resist-game",
+  storageBucket: "resist-game.firebasestorage.app",
+  messagingSenderId: "978750956059",
+  appId: "1:978750956059:web:6366537f7c517e071f4ebe"
+};
+// 🔥 VISITOR COUNTER
+const visitRef = db.ref("siteStats/totalVisits");
+
+visitRef.transaction(current => {
+    return (current || 0) + 1;
+});
+
+// 🔥 TOTAL GAMES COUNTER LISTENER
+db.ref("siteStats/totalVisits").on("value", snapshot => {
+    const visits = snapshot.val() || 0;
+    console.log("Total Visits:", visits);
+});
+
+</script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@400;600;700&display=swap');
+
+body {
+    margin:0;
+    background:#000;
+    font-family:'Teko', sans-serif;
+    color:white;
+    overflow:hidden;
+    cursor:url('data:image/svg+xml;utf8,\
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48">\
+<rect x="14" y="8" width="20" height="12" fill="silver"/>\
+<rect x="22" y="20" width="4" height="24" fill="brown"/>\
+</svg>') 24 10, auto;
+}
+
+@keyframes shake {
+  0% { transform: translate(0,0); }
+  25% { transform: translate(-2px,2px); }
+  50% { transform: translate(2px,-2px); }
+  75% { transform: translate(-2px,-2px); }
+  100% { transform: translate(0,0); }
+}
+.shake { animation: shake 0.15s; }
+
+.screen {
+    position:fixed;
+    width:100%;
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+}
+
+#leaderboard {
+    position:fixed;
+    top:20px;
+    left:20px;
+    width:260px;
+    background:#111;
+    border:1px solid #ff4655;
+    padding:15px;
+    z-index:999;
+}
+
+#leaderboard h3 {
+    margin:0 0 10px 0;
+    color:#ff4655;
+}
+
+#leaderboard ul {
+    padding:0;
+    list-style:none;
+}
+
+#leaderboard li {
+    margin:4px 0;
+}
+
+.livePlayer {
+    color:#00f0ff;
+}
+
+#introScreen h1 {
+    font-size:80px;
+    letter-spacing:6px;
+}
+
+.subtitle {
+    color:#ff4655;
+    margin-bottom:20px;
+}
+
+.instructions {
+    max-width:600px;
+    text-align:center;
+    font-size:20px;
+    color:#aaa;
+    margin-bottom:30px;
+    line-height:1.6;
+}
+
+input {
+    padding:15px;
+    width:320px;
+    margin:10px;
+    background:#111;
+    border:1px solid #333;
+    color:white;
+    font-size:22px;
+    text-align:center;
+}
+
+button {
+    padding:18px 50px;
+    background:#ff4655;
+    border:none;
+    font-size:24px;
+    letter-spacing:2px;
+    color:white;
+    cursor:pointer;
+    margin-top:20px;
+}
+
+button:hover { background:#ff6b7e; }
+
+#gameScreen { display:none; }
+
+#message {
+    position:absolute;
+    top:12%;
+    width:100%;
+    text-align:center;
+    font-size:26px;
+    color:#00f0ff;
+}
+
+.barWrapper {
+    position:absolute;
+    top:25%;
+    left:50%;
+    transform:translateX(-50%);
+    text-align:center;
+}
+
+.barContainer {
+    width:450px;
+    height:22px;
+    background:#222;
+    margin-top:10px;
+}
+
+#resistBar {
+    height:100%;
+    width:100%;
+    background:#ff4655;
+    transition:width 0.2s ease;
+}
+
+#button {
+    position:absolute;
+    padding:18px 50px;
+    background:#00f0ff;
+    border:none;
+    color:black;
+    font-size:22px;
+}
+
+#ageOverlay {
+    position:fixed;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.95);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:50px;
+    text-align:center;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity 0.6s;
+    z-index:9000;
+}
+
+#endScreen { display:none; }
+</style>
+</head>
+
+<body>
+
+<div id="leaderboard">
+    <h3>FASTEST PLAYERS</h3>
+    <ul id="scoreList"></ul>
+</div>
+
+<div id="introScreen" class="screen">
+    <h1>IMPULSE</h1>
+    <div class="subtitle">CONTROL YOUR REACTION</div>
+
+    <div class="instructions">
+        🎯 Click the moving block repeatedly.<br>
+        🔥 Drain its resistance bar fully.<br>
+        ⏳ Stop clicking and it regenerates.<br>
+        ⚡ Age affects difficulty.<br>
+        🏆 Get the fastest time.
+    </div>
+
+    <input type="text" id="nameInput" placeholder="ENTER NAME">
+    <input type="number" id="ageInput" placeholder="ENTER AGE">
+    <button onclick="startGame()">BEGIN</button>
+</div>
+
+<div id="gameScreen" class="screen">
+    <div id="message"></div>
+
+    <div class="barWrapper">
+        <div>RESISTANCE</div>
+        <div class="barContainer">
+            <div id="resistBar"></div>
+        </div>
+    </div>
+
+    <button id="button">CLICK ME</button>
+</div>
+
+<div id="ageOverlay"></div>
+<div id="endScreen" class="screen"></div>
+
+<script>
+let resistance=100;
+let playerName="Player";
+let age=18;
+let clickCount=0;
+let moveSpeed=1;
+let startTime;
+let lastClickTime=Date.now();
+let unlocked=false;
+let timerInterval=null;
+let liveLi=null;
+
+const button=document.getElementById("button");
+const resistBar=document.getElementById("resistBar");
+const message=document.getElementById("message");
+const scoreList=document.getElementById("scoreList");
+
+const punchlines=[
+(n)=>`FASTER, ${n}`,
+(n)=>`KEEP GOING, ${n}`,
+(n)=>`DON'T HESITATE, ${n}`,
+(n)=>`IMPULSE RISING, ${n}`,
+(n)=>`LOCK IN, ${n}`
+];
+
+function startGame(){
+    playerName=document.getElementById("nameInput").value||"Player";
+    age=parseInt(document.getElementById("ageInput").value)||18;
+
+    document.getElementById("introScreen").style.display="none";
+    document.getElementById("gameScreen").style.display="flex";
+    startTime=Date.now();
+
+    // Live player display
+    liveLi=document.createElement("li");
+    liveLi.classList.add("livePlayer");
+    scoreList.prepend(liveLi);
+
+    timerInterval=setInterval(()=>{
+        let liveTime=((Date.now()-startTime)/1000).toFixed(2);
+        liveLi.textContent=`${playerName} - ${liveTime}s`;
+    },50);
+
+    const playerRef=db.ref("players").push();
+    playerRef.set({name:playerName,wins:0,time:null});
+    window.playerID=playerRef.key;
+}
+
+function updateBar(){
+    resistBar.style.width=resistance+"%";
+}
+
+function moveButton(){
+    const padding=40;
+    const lbWidth=document.getElementById("leaderboard").offsetWidth+padding;
+    const maxX=window.innerWidth-button.offsetWidth-padding;
+    const maxY=window.innerHeight-button.offsetHeight-padding;
+    const minX=lbWidth;
+    const minY=window.innerHeight*0.4;
+
+    let x=Math.random()*(maxX-minX)+minX;
+    let y=Math.random()*(maxY-minY)+minY;
+
+    button.style.transition=`left ${0.2/moveSpeed}s ease, top ${0.2/moveSpeed}s ease`;
+    button.style.left=x+"px";
+    button.style.top=y+"px";
+}
+
+button.onclick=function(){
+    if(unlocked)return;
+
+    if(navigator.vibrate) navigator.vibrate(40);
+    document.body.classList.add("shake");
+    setTimeout(()=>document.body.classList.remove("shake"),150);
+
+    resistance-=8;
+    clickCount++;
+    lastClickTime=Date.now();
+
+    message.innerHTML=punchlines[Math.floor(Math.random()*punchlines.length)](playerName);
+
+    if(clickCount===3){
+    if(age>25){
+        moveSpeed=0.6;
+    } else {
+        moveSpeed=1.8;
+    }
+}
+
+    moveButton();
+
+    if(resistance<=0){
+        resistance=0;
+        unlocked=true;
+        endGame();
+    }
+
+    updateBar();
+};
+
+function endGame(){
+    clearInterval(timerInterval);
+
+    let timeTaken=((Date.now()-startTime)/1000).toFixed(2);
+    db.ref("players/"+window.playerID).update({wins:1,time:parseFloat(timeTaken)});
+
+    document.getElementById("gameScreen").style.display="none";
+    const endScreen=document.getElementById("endScreen");
+    endScreen.style.display="flex";
+    endScreen.innerHTML=`
+        <h1>CONGRATULATIONS, LOSER.</h1>
+        <h2>FINAL TIME: ${timeTaken}s</h2>
+        <button onclick="location.reload()">PLAY AGAIN</button>
+    `;
+}
+
+setInterval(()=>{
+    if(!unlocked && Date.now()-lastClickTime>600){
+        resistance+=2;
+        if(resistance>100)resistance=100;
+        updateBar();
+    }
+},200);
+
+db.ref("players").on("value",(snapshot)=>{
+    scoreList.innerHTML=""; // clear list first
+
+    const data=snapshot.val();
+    if(data){
+        const entries=Object.values(data)
+        .filter(p=>p.wins===1 && p.time)
+        .sort((a,b)=>a.time-b.time)
+        .slice(0,10); // 🔥 TOP 10 ONLY
+
+        entries.forEach(p=>{
+            let li=document.createElement("li");
+            li.textContent=`${p.name} - ${p.time}s`;
+            scoreList.appendChild(li);
+        });
+    }
+});
+
+updateBar();
+</script>
+
+</body>
+</html>
